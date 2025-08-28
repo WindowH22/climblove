@@ -1,12 +1,19 @@
 package com.example.clove.controller;
 
 import com.example.clove.domain.User;
+import com.example.clove.dto.LoginRequest;
+import com.example.clove.dto.LoginResponse;
+import com.example.clove.dto.UserRegistrationRequest;
+import com.example.clove.service.JwtService;
 import com.example.clove.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
@@ -14,11 +21,37 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     
     private final UserService userService;
+    private final JwtService jwtService;
     
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody UserRegistrationRequest request) {
+    public ResponseEntity<User> register(@Valid @RequestBody UserRegistrationRequest request) {
         User user = userService.createUser(request.getEmail(), request.getPassword(), request.getNickname());
         return ResponseEntity.ok(user);
+    }
+    
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        Authentication authentication = userService.authenticateUser(request);
+        User user = (User) authentication.getPrincipal();
+        
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        
+        LoginResponse response = LoginResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(86400000L) // 24시간
+                .userInfo(LoginResponse.UserInfo.builder()
+                        .id(user.getId())
+                        .email(user.getEmail())
+                        .nickname(user.getNickname())
+                        .profileImage(user.getProfileImage())
+                        .role(user.getRole().name())
+                        .build())
+                .build();
+        
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping("/profile")
@@ -31,19 +64,5 @@ public class UserController {
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         User user = userService.findById(id);
         return ResponseEntity.ok(user);
-    }
-    
-    public static class UserRegistrationRequest {
-        private String email;
-        private String password;
-        private String nickname;
-        
-        // Getters and Setters
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public String getNickname() { return nickname; }
-        public void setNickname(String nickname) { this.nickname = nickname; }
     }
 }

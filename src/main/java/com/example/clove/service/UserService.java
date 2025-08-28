@@ -1,8 +1,12 @@
 package com.example.clove.service;
 
 import com.example.clove.domain.User;
+import com.example.clove.dto.LoginRequest;
 import com.example.clove.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,6 +21,7 @@ public class UserService implements UserDetailsService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
     
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -55,5 +60,21 @@ public class UserService implements UserDetailsService {
     public void updateLastLoginAt(User user) {
         user.setLastLoginAt(java.time.LocalDateTime.now());
         userRepository.save(user);
+    }
+    
+    public Authentication authenticateUser(LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                loginRequest.getEmail(),
+                loginRequest.getPassword()
+            )
+        );
+        
+        if (authentication.isAuthenticated()) {
+            User user = findByEmail(loginRequest.getEmail());
+            updateLastLoginAt(user);
+        }
+        
+        return authentication;
     }
 }
