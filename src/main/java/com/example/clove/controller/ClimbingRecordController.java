@@ -2,6 +2,12 @@ package com.example.clove.controller;
 
 import com.example.clove.domain.ClimbingRecord;
 import com.example.clove.service.ClimbingRecordService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,10 +22,18 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/climbing-records")
 @RequiredArgsConstructor
+@Tag(name = "등반 기록 관리", description = "등반 기록 생성, 조회, 피드 관리 API")
 public class ClimbingRecordController {
     
     private final ClimbingRecordService climbingRecordService;
     
+    @Operation(summary = "등반 기록 생성", description = "새로운 등반 기록을 생성합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "등반 기록 생성 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping
     public ResponseEntity<ClimbingRecord> createRecord(@RequestBody CreateRecordRequest request,
                                                      @AuthenticationPrincipal UserDetails userDetails) {
