@@ -21,7 +21,6 @@ public class UserService implements UserDetailsService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -62,19 +61,12 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
     
-    public Authentication authenticateUser(LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getEmail(),
-                loginRequest.getPassword()
-            )
-        );
-        
-        if (authentication.isAuthenticated()) {
-            User user = findByEmail(loginRequest.getEmail());
-            updateLastLoginAt(user);
+    public User authenticateUser(String email, String password) {
+        User user = findByEmail(email);
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid password");
         }
-        
-        return authentication;
+        updateLastLoginAt(user);
+        return user;
     }
 }
